@@ -190,6 +190,7 @@ void setup() {
 
   //interrupt
    attachInterrupt(digitalPinToInterrupt(echoPin), echoInterrupt, CHANGE);
+  attachInterrupt(digitalPinToINterrupt(IRpin),IRINterrupt,HIGH);
 
 
   if (tcs.begin()) {
@@ -406,3 +407,14 @@ void echoInterrupt() {
     }
   }
 }
+
+void IRinterrupt() {
+   if (Scan.Available()) {                                            // if data is received
+              donothing();
+              moveForwards(500);
+              turnLeft(2000);
+              servo3.write(10);
+              Serial.println(Scan.Get_IR_Data());                              // output received data to serial
+            }
+}
+

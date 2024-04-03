@@ -126,6 +126,7 @@ void turnLeft(int c);
 void turnRight(int d );
 void donothing();
 void echoInterrupt();
+void IRinterrupt;
 
 // update heartbeat LED
 // update heartbeat LED
@@ -190,7 +191,7 @@ void setup() {
 
   //interrupt
    attachInterrupt(digitalPinToInterrupt(echoPin), echoInterrupt, CHANGE);
-  attachInterrupt(digitalPinToINterrupt(IRpin),IRINterrupt,HIGH);
+  attachInterrupt(digitalPinToINterrupt(14),IRINterrupt,HIGH);
 
 
   if (tcs.begin()) {

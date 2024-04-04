@@ -60,6 +60,8 @@ long timecount3000ms = 0;
 bool timeup3000ms = false;
 long timecount500ms = 0;
 bool timeup500ms = false;
+long timecount80s = 0;
+bool timeup80s = false;
 long currenttime =0;
 
 //Switch Parameter
@@ -126,7 +128,7 @@ void turnLeft(int c);
 void turnRight(int d );
 void donothing();
 void echoInterrupt();
-void IRinterrupt;
+void IRinterrupt();
 
 // update heartbeat LED
 // update heartbeat LED
@@ -191,7 +193,7 @@ void setup() {
 
   //interrupt
    attachInterrupt(digitalPinToInterrupt(echoPin), echoInterrupt, CHANGE);
-  attachInterrupt(digitalPinToINterrupt(14),IRINterrupt,HIGH);
+  attachInterrupt(digitalPinToInterrupt(14),IRinterrupt,HIGH);
 
 
   if (tcs.begin()) {
@@ -212,31 +214,28 @@ void loop() {
   //Timing Logic 
   currenttime = millis();
   timecount3000ms = timecount3000ms +1;
-  if (timecount3000ms>2){
+  if (timecount3000ms>3000){
     timeup3000ms = true;
     timecount3000ms = 0;
   }
 
   timecount500ms = timecount500ms +1;
-  if (timecount500ms>2){
+  if (timecount500ms>500){
     timeup500ms = true;
     timecount500ms = 0;
   }
 
-
+  timecount80s = timecount80s +1;
+if(timecount80s>80000){
+  timeup80s = true;
+  timecount80s = 0;
+}
 
   switch(part){
 
-    case 0: //Drive Algorithm
+    case 0: //Drive Algorithm & sorting algorythm
+      noInterrupts(); //stops the interrupts
     for(int i = 0; i<4; i++){
-    moveForward(4000);
-    turnLeft(2000);
-    moveForward(4000);
-    turnLeft(6000);
-    moveForward(4000);
-    turnLeft(6000);
-    moveForward(8000);
-    turnLeft(2000);
 
  //color sensor code 
   uint16_t r, g, b, c;                                // RGBC values from TCS34725
@@ -247,7 +246,7 @@ void loop() {
   }
 
  // Check if it's time to read the color
-  if (millis() - colorReadStart >= colorReadInterval || colorReadStart == 0) {
+  if (millis() - colorReadStart >= colorReadInterval || colorReadStart == 0 && timeup80s == false) {
     // Read color values from the sensor after a 2-second interval for accurate reading
     if (millis() - colorReadStart >= colorReadInterval) {
       tcs.getRawData(&r, &g, &b, &c);          
@@ -268,6 +267,14 @@ void loop() {
     Serial.println("Writing 180 degrees to servo.");
      ledcWrite(cServoChannel, degreesToDutyCycle(180));
     ledcWrite(cServoChannel2, degreesToDutyCycle(0));
+    moveForward(4000);
+    turnLeft(2000);
+    moveForward(4000);
+    turnLeft(6000);
+    moveForward(4000);
+    turnLeft(6000);
+    moveForward(8000);
+    turnLeft(2000);
     }
   else {
       // 149 Degrees was the highest we could go before, it was because of the degreesToDutyCycle function being uncalibrated
@@ -276,26 +283,34 @@ void loop() {
       Serial.println("Writing 0 degrees to servo.");
       ledcWrite(cServoChannel, degreesToDutyCycle(90));
       ledcWrite(cServoChannel2, degreesToDutyCycle(90));
+    moveForward(4000);
+    turnLeft(2000);
+    moveForward(4000);
+    turnLeft(6000);
+    moveForward(4000);
+    turnLeft(6000);
+    moveForward(8000);
+    turnLeft(2000);
     }
   } 
 
-    part = 1;
+    if(timeup80s){
+      part = 1;
+    }
      break;
 
-
-//////////////////////////////////////////////////////////////////////////////////////
-
   case 1: //Back to base algorithm
-  noInterrupts();
     switch (b2b){
       case 0:
        //IR & Ultrasonic Loop Code 
-      if (Scan.Available()) {                                            // if data is received
+      if (Scan.Available()) {                                            // if IR data is received, stop and start moving in that direction
+                  donothing();
                   Serial.println(Scan.Get_IR_Data());                              // output received data to serial
                   double ultraDistance = getDistance();
                   Serial.print("Distance (metres): ");
                     Serial.println(ultraDistance);
-                  if(ultraDistance > 30){
+                  if(ultraDistance > 50){
+                     interrupts(); // allows 
                     moveForward(1000);
                   }
                   else{
@@ -306,31 +321,8 @@ void loop() {
       break;
 
       case 1:
-      //make the servo rise in this section with a new channel?
-    // Check if it's time to change the angle
-    if (currentMillis2 - previousMillis2 >= interval) {
-    // Save the current time
-    previousMillis2 = currentMillis2;
-
-    if (currentAngle == minAngle) {
-      currentAngle = maxAngle;
-      counter++;
-    }
-     else {
-      currentAngle = minAngle;
-      counter++;
-    }
-    // Move the servo to the new angle
-    servo3.write(currentAngle);
-    // Print the current angle to serial monitor
-    Serial.print("Current angle: ");
-    Serial.println(currentAngle);
-
-  }
-
-  if(counter >= 3){
-    part = 2;
-  }
+      servo3.write(10); //raise the gate 
+        part = 2;
       break;
 
     default:
@@ -338,16 +330,8 @@ void loop() {
       break;
     }
   break;
-
-
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  case 2:
-  part  = 3;
-  break;
-
-  case 3:
+    
+  case 2: //end of process
   donothing();
   break;
 
@@ -361,35 +345,39 @@ void loop() {
 
 //Drive Methods 
 void moveForward(int duration) { //move forwards
-  digitalWrite(LEFT_MOTOR_A, HIGH); //forward channel high
+  for(int i = 0; i<duration, i++;){
+   digitalWrite(LEFT_MOTOR_A, HIGH); //forward channel high
   digitalWrite(LEFT_MOTOR_B, LOW);
   digitalWrite(RIGHT_MOTOR_A, HIGH); //forward channel high
   digitalWrite(RIGHT_MOTOR_B, LOW);
-  delay(duration);
+  }
 }
 
 void moveBackward(int duration) {
+    for(int i = 0; i<duration, i++;){
   digitalWrite(LEFT_MOTOR_A, LOW);
   digitalWrite(LEFT_MOTOR_B, HIGH); //backward channel high
   digitalWrite(RIGHT_MOTOR_A, LOW);
   digitalWrite(RIGHT_MOTOR_B, HIGH); //backward channel high
-  delay(duration);
+  }
 }
 
 void turnLeft(int duration) {
+    for(int i = 0; i<duration, i++;){
   digitalWrite(LEFT_MOTOR_A, LOW);
   digitalWrite(LEFT_MOTOR_B, HIGH); //backwards channel high
   digitalWrite(RIGHT_MOTOR_A, HIGH); //forwards channel high
   digitalWrite(RIGHT_MOTOR_B, LOW);
-  delay(duration);
+  }
 }
 
 void turnRight(int duration) {
+    for(int i = 0; i<duration, i++;){
   digitalWrite(LEFT_MOTOR_A, HIGH); //forwrads channel high
   digitalWrite(LEFT_MOTOR_B, LOW);
   digitalWrite(RIGHT_MOTOR_A, LOW);
   digitalWrite(RIGHT_MOTOR_B, HIGH); //backwards channel high
-  delay(duration);
+  }
 }
 
 void donothing(){
@@ -399,22 +387,23 @@ void donothing(){
   digitalWrite(RIGHT_MOTOR_B, LOW); //backwards channel high
 }
 
-void echoInterrupt() {
-  walldistance  = getDistance();
-  if (walldistance < 50) {
+void echoInterrupt() { //ultrasonic interrupt
+  noInterrupts();
+  walldistance  = getDistance(); //gets current distance from an object
+  if (walldistance < 50) { //if its less than 50 cm turn around 
     timeup3000ms = false;
-    while (timeup3000ms != true){
-      turnLeft(0);
+    for ( int i = 0; 3000 > i, i ++;){
+      turnLeft(1);
+      donothing();
     }
   }
 }
 
-void IRinterrupt() {
+void IRInterrupt() { //ir interrupt
    if (Scan.Available()) {                                            // if data is received
-              donothing();
-              moveForwards(500);
-              turnLeft(2000);
-              servo3.write(10);
+               interrupts(); //allows for the ultrasonic interrupt 
+              donothing(); //stop
+              moveForward(10000); //move forwards a long time 
               Serial.println(Scan.Get_IR_Data());                              // output received data to serial
             }
 }

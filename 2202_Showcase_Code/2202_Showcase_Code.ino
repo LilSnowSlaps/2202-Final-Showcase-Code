@@ -302,6 +302,7 @@ if(timecount80s>80000){
   case 1: //Back to base algorithm
     switch (b2b){
       case 0:
+        turnLeft(4000);
        //IR & Ultrasonic Loop Code 
       if (Scan.Available()) {                                            // if IR data is received, stop and start moving in that direction
                   donothing();
@@ -318,6 +319,9 @@ if(timecount80s>80000){
                     b2b = 1;
                   }
                 }
+        else{
+          moveForwards(1000);
+        }
       break;
 
       case 1:
